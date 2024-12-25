@@ -7,7 +7,7 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
 
-        body {
+           body {
             font-family: 'Roboto', sans-serif;
             margin: 0;
             padding: 0;
@@ -62,8 +62,8 @@
             cursor: pointer;
             font-weight: 500;
             transition: background-color 0.3s, color 0.3s, transform 0.2s;
-            padding: 10px;
-            width: auto;
+            padding: 14px;
+            font-size: 16px;
         }
 
         button:hover {
@@ -78,14 +78,12 @@
         #profitButton {
             background: linear-gradient(45deg, #28a745, #218838);
             color: white;
-            font-size: 16px;
             margin-right: 10px;
         }
 
         #lossButton {
             background: linear-gradient(45deg, #dc3545, #c82333);
             color: white;
-            font-size: 16px;
         }
 
         #lightThemeButton {
@@ -100,8 +98,8 @@
 
         .button-group {
             display: flex;
-            justify-content: flex-start;
-            gap: 10px;
+            justify-content: center;
+            gap: 20px;
         }
 
         table {
@@ -344,18 +342,42 @@
             }
         }
 
-        function calculateNextInvestment(success) {
-            switch (strategySelect.value) {
-                case 'standard':
-                    return balance * 0.01;
-                case 'martingale':
-                    return success ? balance * 0.01 : previousInvestment * 2;
-                case 'fibonacci':
-                    return success ? balance * 0.01 : previousInvestment * 1.5; 
-                default:
-                    return balance * 0.01;
+       function calculateNextInvestment(success) {
+    switch (strategySelect.value) {
+        case 'standard':
+            return balance * 0.01; // השקעה קבועה של 1% מהאיזון
+
+        case 'martingale':
+            if (success) {
+                return balance * 0.01; // אם הייתה הצלחה, נשאר על 1% מהאיזון
+            } else {
+                return previousInvestment * 2; // אם היה הפסד, ההשקעה מכפילה את עצמה
             }
-        }
+
+        case 'fibonacci':
+            if (success) {
+                // אם הייתה הצלחה, חוזרים להתחלה בסדרה (סכום ראשון)
+                fibonacciIndex = 0; 
+                return balance * 0.01; // כל פעם אחרי הצלחה ההשקעה היא 1% מהאיזון
+            } else {
+                // אם הייתה הפסד, עוברים לסכום הבא בסדרת פיבונאצ'י
+                fibonacciIndex++;
+                if (fibonacciIndex === 0) {
+                    return balance * 0.01; // תחילת סדרת פיבונאצ'י
+                } else if (fibonacciIndex === 1) {
+                    return previousInvestment; // הערך השני בסדרה הוא הערך הקודם
+                } else {
+                    // סדרת פיבונאצ'י: הערך הבא בסדרה הוא סכום שני הערכים הקודמים
+                    return fibonacciSequence[fibonacciIndex - 1] + fibonacciSequence[fibonacciIndex - 2];
+                }
+            }
+
+        default:
+            return balance * 0.01; // ברירת מחדל
+    }
+}
+
+
 
         function displayRoundSummary() {
             const summaryRow = document.createElement('tr');
