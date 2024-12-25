@@ -7,11 +7,12 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
 
-           body {
+        body {
             font-family: 'Roboto', sans-serif;
             margin: 0;
             padding: 0;
             background-color: #f0f4f8;
+            transition: background-color 0.3s, color 0.3s;
         }
 
         .container {
@@ -21,6 +22,8 @@
             background: #ffffff;
             border-radius: 10px;
             box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            position: relative;
+            transition: background-color 0.3s, color 0.3s;
         }
 
         h1 {
@@ -86,16 +89,6 @@
             color: white;
         }
 
-        #lightThemeButton {
-            background: linear-gradient(45deg, #007BFF, #0056b3);
-            color: white;
-        }
-
-        #darkThemeButton {
-            background: linear-gradient(45deg, #6c757d, #5a6268);
-            color: white;
-        }
-
         .button-group {
             display: flex;
             justify-content: center;
@@ -138,16 +131,6 @@
             font-weight: 600;
         }
 
-        .theme-switch {
-            text-align: center;
-            margin-top: 20px;
-        }
-
-        .theme-switch button {
-            padding: 10px 20px;
-            margin: 5px;
-        }
-
         .strategy-description {
             margin-top: 10px;
             padding: 10px;
@@ -155,6 +138,143 @@
             border: 1px solid #ddd;
             border-radius: 5px;
             font-size: 14px;
+            color: #555;
+            transition: opacity 0.3s ease;
+            opacity: 0;
+        }
+
+        .strategy-description.visible {
+            opacity: 1;
+        }
+
+        /* Sliding Segmented Control for Strategy Selection */
+        .switch-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .strategy-switch {
+            position: relative;
+            display: flex;
+            width: 100%;
+            max-width: 600px;
+            background-color: #ddd;
+            border-radius: 25px;
+            overflow: hidden;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+        }
+
+        .strategy-switch input[type="radio"] {
+            display: none;
+        }
+
+        .strategy-switch label {
+            flex: 1;
+            text-align: center;
+            padding: 15px 0;
+            cursor: pointer;
+            transition: color 0.3s;
+            color: #555;
+            z-index: 2;
+            position: relative;
+        }
+
+        .strategy-switch label:hover {
+            color: #000;
+        }
+
+        .strategy-switch input[type="radio"]:checked + label {
+            color: white;
+            font-weight: 600;
+        }
+
+        .strategy-slider {
+            position: absolute;
+            top: 2px;
+            bottom: 2px;
+            left: 0;
+            width: calc(100% / 3);
+            background-color: #43cea2;
+            border-radius: 25px;
+            transition: transform 0.3s ease, background-color 0.3s ease;
+            z-index: 1;
+        }
+
+        /* Positioning the slider based on selected strategy */
+        #standard:checked ~ .strategy-slider {
+            transform: translateX(0%);
+            background-color: #43cea2;
+        }
+
+        #martingale:checked ~ .strategy-slider {
+            transform: translateX(100%);
+            background-color: #28a745;
+        }
+
+        #fibonacci:checked ~ .strategy-slider {
+            transform: translateX(200%);
+            background-color: #dc3545;
+        }
+
+        /* Sliding Toggle Switch for Theme Switching */
+        .theme-switch {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.4s;
+            border-radius: 34px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: #007BFF;
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+
+        /* Label for Theme Switch */
+        .theme-label {
+            font-weight: 500;
             color: #555;
         }
 
@@ -180,11 +300,41 @@
                 padding: 10px;
                 font-size: 14px;
             }
+
+            .strategy-switch {
+                max-width: 100%;
+            }
+
+            .theme-switch {
+                top: 10px;
+                right: 10px;
+            }
+
+            .toggle-switch {
+                width: 50px;
+                height: 28px;
+            }
+
+            .toggle-slider:before {
+                height: 22px;
+                width: 22px;
+                left: 3px;
+                bottom: 3px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- Theme Switch at the Top-Right Corner -->
+        <div class="theme-switch">
+            <span class="theme-label">Switch Theme:</span>
+            <label class="toggle-switch">
+                <input type="checkbox" id="themeToggle">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+
         <h1>Binary Options Calculator</h1>
 
         <div class="form-group">
@@ -198,12 +348,18 @@
         </div>
 
         <div class="form-group">
-            <label for="strategy">Select Strategy</label>
-            <select id="strategy">
-                <option value="standard">Standard</option>
-                <option value="martingale">Martingale</option>
-                <option value="fibonacci">Fibonacci</option>
-            </select>
+            <label>Select Strategy</label>
+            <div class="switch-container">
+                <div class="strategy-switch">
+                    <input type="radio" id="standard" name="strategy" value="standard" checked>
+                    <input type="radio" id="martingale" name="strategy" value="martingale">
+                    <input type="radio" id="fibonacci" name="strategy" value="fibonacci">
+                    <div class="strategy-slider"></div>
+                    <label for="standard">Standard</label>
+                    <label for="martingale">Martingale</label>
+                    <label for="fibonacci">Fibonacci</label>
+                </div>
+            </div>
         </div>
 
         <div class="strategy-description" id="strategyDescription">Select a strategy to see details here.</div>
@@ -236,12 +392,6 @@
                 <!-- History rows will be dynamically added here -->
             </tbody>
         </table>
-
-        <div class="theme-switch">
-            <p>Switch Theme:</p>
-            <button id="lightThemeButton">Light Theme</button>
-            <button id="darkThemeButton">Dark Theme</button>
-        </div>
     </div>
 
     <script>
@@ -254,23 +404,67 @@
             losses: 0,
             totalProfit: 0
         };
+        let fibonacciIndex = 0;
+        let fibonacciSequence = [1, 1];  // Starting Fibonacci sequence
 
         const historyTable = document.getElementById('historyTable').querySelector('tbody');
         const initialBalanceInput = document.getElementById('initialBalance');
         const payoutPercentageInput = document.getElementById('payoutPercentage');
-        const strategySelect = document.getElementById('strategy');
+        const strategyInputs = document.getElementsByName('strategy');
         const nextInvestmentInput = document.getElementById('nextInvestment');
         const strategyDescription = document.getElementById('strategyDescription');
+        const themeToggle = document.getElementById('themeToggle');
 
         const strategyDetails = {
-            standard: "Invest a fixed percentage of your balance.",
-            martingale: "Double your investment after a loss to recover losses.",
-            fibonacci: "Use the Fibonacci sequence for adjusting investments."
+            standard: `
+                <h2>Standard Strategy</h2>
+                <p>The Standard strategy involves investing a fixed percentage of your current balance in each round.</p>
+                <ul>
+                    <li><strong>Example:</strong> If you choose to invest 1% and your balance is $100, you will invest $1 each round.</li>
+                    <li><strong>Advantages:</strong> Simple to understand and implement.</li>
+                    <li><strong>Disadvantages:</strong> Doesn't adapt to winning or losing streaks, potentially limiting profit growth.</li>
+                </ul>
+            `,
+            martingale: `
+                <h2>Martingale Strategy</h2>
+                <p>The Martingale strategy involves doubling your investment after each loss to recover previous losses and gain a small profit.</p>
+                <ul>
+                    <li><strong>Example:</strong> Start with a $1 investment. If you lose, invest $2 in the next round. If you lose again, invest $4, and so on.</li>
+                    <li><strong>Advantages:</strong> Can recover losses quickly if a win occurs after a series of losses.</li>
+                    <li><strong>Disadvantages:</strong> Requires a substantial bankroll to sustain long losing streaks. High risk of significant losses.</li>
+                </ul>
+            `,
+            fibonacci: `
+                <h2>Fibonacci Strategy</h2>
+                <p>The Fibonacci strategy uses the Fibonacci sequence to determine the next investment after a loss, aiming to recover losses gradually.</p>
+                <ul>
+                    <li><strong>Example:</strong> Start with $1. If you lose, the next investment is $1 (1st number in sequence). If you lose again, invest $2 (2nd number). Then $3, $5, $8, etc.</li>
+                    <li><strong>Advantages:</strong> Less aggressive than Martingale, reducing the risk of exponential losses.</li>
+                    <li><strong>Disadvantages:</strong> Still requires a decent bankroll and can lead to significant losses during extended losing streaks.</li>
+                </ul>
+            `
         };
 
-        strategySelect.addEventListener('change', () => {
-            strategyDescription.textContent = strategyDetails[strategySelect.value];
-        });
+        // Function to update strategy description
+        function updateStrategyDescription() {
+            let selectedStrategy = 'standard'; // default
+            for (const input of strategyInputs) {
+                if (input.checked) {
+                    selectedStrategy = input.value;
+                    break;
+                }
+            }
+            strategyDescription.innerHTML = strategyDetails[selectedStrategy];
+            strategyDescription.classList.add('visible');
+        }
+
+        // Initialize with default strategy description
+        updateStrategyDescription();
+
+        // Add event listeners to strategy inputs
+        for (const input of strategyInputs) {
+            input.addEventListener('change', updateStrategyDescription);
+        }
 
         document.getElementById('initializeButton').addEventListener('click', (event) => {
             event.preventDefault();
@@ -285,6 +479,8 @@
             previousInvestment = balance * 0.01;
             round = 0;
             roundSummary = { wins: 0, losses: 0, totalProfit: 0 };
+            fibonacciIndex = 0;
+            fibonacciSequence = [1, 1];  // Reset Fibonacci sequence
             nextInvestmentInput.value = `$${previousInvestment.toFixed(2)}`;
             historyTable.innerHTML = '';
         });
@@ -305,14 +501,19 @@
             processResult(false);
         });
 
-        document.getElementById('lightThemeButton').addEventListener('click', () => {
-            document.body.style.backgroundColor = '#f0f4f8';
-            document.body.style.color = '#333';
-        });
-
-        document.getElementById('darkThemeButton').addEventListener('click', () => {
-            document.body.style.backgroundColor = '#2c2f33';
-            document.body.style.color = '#ffffff';
+        // Theme Toggle Switch
+        themeToggle.addEventListener('change', () => {
+            if (themeToggle.checked) {
+                // Dark Theme
+                document.body.style.backgroundColor = '#2c2f33';
+                document.body.style.color = '#ffffff';
+                document.querySelector('.container').style.backgroundColor = '#23272a';
+            } else {
+                // Light Theme
+                document.body.style.backgroundColor = '#f0f4f8';
+                document.body.style.color = '#333';
+                document.querySelector('.container').style.backgroundColor = '#ffffff';
+            }
         });
 
         function processResult(success) {
@@ -337,47 +538,53 @@
             previousInvestment = calculateNextInvestment(success);
             nextInvestmentInput.value = `$${previousInvestment.toFixed(2)}`;
 
+            // Check for minimum investment
+            if (previousInvestment < 1) {
+                alert('Investment amount cannot be less than $1. Please change your strategy.');
+                // Optionally, reset to a default strategy or prompt user to select
+            }
+
             if (round % 10 === 0) {
                 displayRoundSummary();
             }
         }
 
-       function calculateNextInvestment(success) {
-    switch (strategySelect.value) {
-        case 'standard':
-            return balance * 0.01; // השקעה קבועה של 1% מהאיזון
-
-        case 'martingale':
-            if (success) {
-                return balance * 0.01; // אם הייתה הצלחה, נשאר על 1% מהאיזון
-            } else {
-                return previousInvestment * 2; // אם היה הפסד, ההשקעה מכפילה את עצמה
-            }
-
-        case 'fibonacci':
-            if (success) {
-                // אם הייתה הצלחה, חוזרים להתחלה בסדרה (סכום ראשון)
-                fibonacciIndex = 0; 
-                return balance * 0.01; // כל פעם אחרי הצלחה ההשקעה היא 1% מהאיזון
-            } else {
-                // אם הייתה הפסד, עוברים לסכום הבא בסדרת פיבונאצ'י
-                fibonacciIndex++;
-                if (fibonacciIndex === 0) {
-                    return balance * 0.01; // תחילת סדרת פיבונאצ'י
-                } else if (fibonacciIndex === 1) {
-                    return previousInvestment; // הערך השני בסדרה הוא הערך הקודם
-                } else {
-                    // סדרת פיבונאצ'י: הערך הבא בסדרה הוא סכום שני הערכים הקודמים
-                    return fibonacciSequence[fibonacciIndex - 1] + fibonacciSequence[fibonacciIndex - 2];
+        function calculateNextInvestment(success) {
+            let selectedStrategy = 'standard'; // default
+            for (const input of strategyInputs) {
+                if (input.checked) {
+                    selectedStrategy = input.value;
+                    break;
                 }
             }
 
-        default:
-            return balance * 0.01; // ברירת מחדל
-    }
-}
+            switch (selectedStrategy) {
+                case 'standard':
+                    return balance * 0.01; // Fixed 1% of balance
 
+                case 'martingale':
+                    return success ? balance * 0.01 : previousInvestment * 2; // Double after loss
 
+                case 'fibonacci':
+                    if (success) {
+                        // Reset Fibonacci sequence after a win
+                        fibonacciIndex = 0;
+                        return balance * 0.01;
+                    } else {
+                        // Move to next Fibonacci number after a loss
+                        fibonacciIndex++;
+                        if (fibonacciIndex >= fibonacciSequence.length) {
+                            const nextInvestment = fibonacciSequence[fibonacciIndex - 1] + fibonacciSequence[fibonacciIndex - 2];
+                            fibonacciSequence.push(nextInvestment);
+                            return nextInvestment;
+                        }
+                        return fibonacciSequence[fibonacciIndex];
+                    }
+
+                default:
+                    return balance * 0.01; // Default to Standard strategy
+            }
+        }
 
         function displayRoundSummary() {
             const summaryRow = document.createElement('tr');
@@ -386,11 +593,24 @@
                 <td colspan="2">Summary (Rounds ${round - 9}-${round})</td>
                 <td>Wins: ${roundSummary.wins}, Losses: ${roundSummary.losses}</td>
                 <td>Total Profit: $${roundSummary.totalProfit.toFixed(2)}</td>
-                <td>Balance: $${balance.toFixed(2)} (Strategy: ${strategySelect.value})</td>
+                <td>Balance: $${balance.toFixed(2)} (Strategy: ${capitalizeFirstLetter(getSelectedStrategy())})</td>
             `;
             historyTable.appendChild(summaryRow);
 
             roundSummary = { wins: 0, losses: 0, totalProfit: 0 };
+        }
+
+        function getSelectedStrategy() {
+            for (const input of strategyInputs) {
+                if (input.checked) {
+                    return input.value;
+                }
+            }
+            return 'standard'; // default
+        }
+
+        function capitalizeFirstLetter(string) {
+            return string.charAt(0).toUpperCase() + string.slice(1);
         }
     </script>
 </body>
