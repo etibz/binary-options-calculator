@@ -44,7 +44,7 @@
             font-weight: 500;
         }
 
-        input, select, button {
+        input, button {
             width: 100%;
             padding: 12px;
             border: 1px solid #ddd;
@@ -54,7 +54,7 @@
             transition: 0.3s ease;
         }
 
-        input:focus, select:focus {
+        input:focus, button:focus {
             border-color: #007BFF;
             box-shadow: 0px 0px 5px rgba(0, 123, 255, 0.5);
             outline: none;
@@ -395,6 +395,7 @@
     </div>
 
     <script>
+        // State Variables
         let balance = 0;
         let previousInvestment = 0;
         let payoutPercentage = 0;
@@ -406,7 +407,10 @@
         };
         let fibonacciIndex = 0;
         let fibonacciSequence = [1, 1];  // Starting Fibonacci sequence
+        let cumulativeLosses = 0;
+        const targetProfit = 1; // Target profit per round in $
 
+        // DOM Elements
         const historyTable = document.getElementById('historyTable').querySelector('tbody');
         const initialBalanceInput = document.getElementById('initialBalance');
         const payoutPercentageInput = document.getElementById('payoutPercentage');
@@ -415,10 +419,14 @@
         const strategyDescription = document.getElementById('strategyDescription');
         const themeToggle = document.getElementById('themeToggle');
 
+        // Maximum investment percentage of the balance
+        const maxInvestmentPercentage = 0.05; // 5%
+
+        // Strategy Details
         const strategyDetails = {
             standard: `
                 <h2>Standard Strategy</h2>
-                <p>The Standard strategy involves investing a fixed percentage of your current balance in each round.</p>
+                <p>The Standard strategy involves investing a fixed percentage (1%) of your current balance each round.</p>
                 <ul>
                     <li><strong>Example:</strong> If you choose to invest 1% and your balance is $100, you will invest $1 each round.</li>
                     <li><strong>Advantages:</strong> Simple to understand and implement.</li>
@@ -427,7 +435,7 @@
             `,
             martingale: `
                 <h2>Martingale Strategy</h2>
-                <p>The Martingale strategy involves doubling your investment after each loss to recover previous losses and gain a small profit.</p>
+                <p>The Martingale strategy involves doubling your investment after each loss to recover previous losses and secure a profit.</p>
                 <ul>
                     <li><strong>Example:</strong> Start with a $1 investment. If you lose, invest $2 in the next round. If you lose again, invest $4, and so on.</li>
                     <li><strong>Advantages:</strong> Can recover losses quickly if a win occurs after a series of losses.</li>
@@ -466,6 +474,7 @@
             input.addEventListener('change', updateStrategyDescription);
         }
 
+        // Initialize Button Event Listener
         document.getElementById('initializeButton').addEventListener('click', (event) => {
             event.preventDefault();
             balance = parseFloat(initialBalanceInput.value);
@@ -476,15 +485,27 @@
                 return;
             }
 
-            previousInvestment = balance * 0.01;
             round = 0;
             roundSummary = { wins: 0, losses: 0, totalProfit: 0 };
             fibonacciIndex = 0;
             fibonacciSequence = [1, 1];  // Reset Fibonacci sequence
+            cumulativeLosses = 0;
+
+            // Set initial investment based on strategy
+            let selectedStrategy = getSelectedStrategy();
+            if (selectedStrategy === 'fibonacci') {
+                previousInvestment = 1; // Start with $1 for Fibonacci
+            } else if (selectedStrategy === 'martingale') {
+                previousInvestment = Math.max(balance * 0.01, 1); // 1% of balance or minimum $1
+            } else { // standard
+                previousInvestment = Math.max(balance * 0.01, 1); // 1% of balance or minimum $1
+            }
+
             nextInvestmentInput.value = `$${previousInvestment.toFixed(2)}`;
             historyTable.innerHTML = '';
         });
 
+        // Profit Button Event Listener
         document.getElementById('profitButton').addEventListener('click', () => {
             if (!balance || !previousInvestment) {
                 alert('Please initialize the calculator first.');
@@ -493,6 +514,7 @@
             processResult(true);
         });
 
+        // Loss Button Event Listener
         document.getElementById('lossButton').addEventListener('click', () => {
             if (!balance || !previousInvestment) {
                 alert('Please initialize the calculator first.');
@@ -501,7 +523,7 @@
             processResult(false);
         });
 
-        // Theme Toggle Switch
+        // Theme Toggle Switch Event Listener
         themeToggle.addEventListener('change', () => {
             if (themeToggle.checked) {
                 // Dark Theme
@@ -516,14 +538,30 @@
             }
         });
 
+        // Function to process the result of a round
         function processResult(success) {
-            const profit = success ? previousInvestment * (payoutPercentage / 100) : -previousInvestment;
+            let profit;
+            if (success) {
+                // Profit
+                profit = previousInvestment * (payoutPercentage / 100);
+                cumulativeLosses = 0; // Reset cumulative losses after a win
+            } else {
+                // Loss
+                profit = -previousInvestment;
+                cumulativeLosses += previousInvestment;
+            }
+
             balance += profit;
             round++;
 
-            success ? roundSummary.wins++ : roundSummary.losses++;
+            if (success) {
+                roundSummary.wins++;
+            } else {
+                roundSummary.losses++;
+            }
             roundSummary.totalProfit += profit;
 
+            // Add the round to the history table
             const row = document.createElement('tr');
             row.className = success ? 'profit' : 'loss';
             row.innerHTML = `
@@ -535,20 +573,43 @@
             `;
             historyTable.appendChild(row);
 
+            // Calculate next investment based on strategy
             previousInvestment = calculateNextInvestment(success);
             nextInvestmentInput.value = `$${previousInvestment.toFixed(2)}`;
 
-            // Check for minimum investment
+            // Enforce minimum investment
             if (previousInvestment < 1) {
                 alert('Investment amount cannot be less than $1. Please change your strategy.');
-                // Optionally, reset to a default strategy or prompt user to select
             }
 
+            // Enforce maximum investment
+            const maxInvestment = balance * maxInvestmentPercentage;
+            if (previousInvestment > maxInvestment) {
+                previousInvestment = maxInvestment;
+                nextInvestmentInput.value = `$${previousInvestment.toFixed(2)}`;
+                alert(`Investment capped at 5% of your balance ($${maxInvestment.toFixed(2)}).`);
+            }
+
+            // Ensure guaranteed profit
+            if (success) {
+                // If profit is less than target, increase next investment to meet target profit
+                if (profit < targetProfit) {
+                    const additionalInvestment = (targetProfit - profit) / (payoutPercentage / 100);
+                    previousInvestment += additionalInvestment;
+                    nextInvestmentInput.value = `$${previousInvestment.toFixed(2)}`;
+                }
+            } else {
+                // If loss, the next investment is already adjusted by the strategy
+                // No additional action needed
+            }
+
+            // Display summary every 10 rounds
             if (round % 10 === 0) {
                 displayRoundSummary();
             }
         }
 
+        // Function to calculate the next investment based on the selected strategy
         function calculateNextInvestment(success) {
             let selectedStrategy = 'standard'; // default
             for (const input of strategyInputs) {
@@ -558,34 +619,63 @@
                 }
             }
 
+            let nextInvestment;
             switch (selectedStrategy) {
                 case 'standard':
-                    return balance * 0.01; // Fixed 1% of balance
+                    // Fixed 1% of balance + cover cumulative losses + target profit
+                    nextInvestment = balance * 0.01 + cumulativeLosses + targetProfit;
+                    break;
 
                 case 'martingale':
-                    return success ? balance * 0.01 : previousInvestment * 2; // Double after loss
+                    if (success) {
+                        // Reset to initial investment after a win
+                        nextInvestment = Math.max(balance * 0.01, 1);
+                    } else {
+                        // Double the investment after a loss
+                        nextInvestment = previousInvestment * 2;
+                    }
+                    break;
 
                 case 'fibonacci':
                     if (success) {
                         // Reset Fibonacci sequence after a win
                         fibonacciIndex = 0;
-                        return balance * 0.01;
+                        nextInvestment = 1; // Start with $1
                     } else {
-                        // Move to next Fibonacci number after a loss
+                        // Move to the next Fibonacci number after a loss
                         fibonacciIndex++;
                         if (fibonacciIndex >= fibonacciSequence.length) {
-                            const nextInvestment = fibonacciSequence[fibonacciIndex - 1] + fibonacciSequence[fibonacciIndex - 2];
-                            fibonacciSequence.push(nextInvestment);
-                            return nextInvestment;
+                            const nextFib = fibonacciSequence[fibonacciIndex - 1] + fibonacciSequence[fibonacciIndex - 2];
+                            fibonacciSequence.push(nextFib);
+                            nextInvestment = nextFib;
+                        } else {
+                            nextInvestment = fibonacciSequence[fibonacciIndex];
                         }
-                        return fibonacciSequence[fibonacciIndex];
+                        // Add cumulative losses and target profit
+                        nextInvestment += cumulativeLosses + targetProfit;
                     }
+                    break;
 
                 default:
-                    return balance * 0.01; // Default to Standard strategy
+                    // Default to Standard strategy
+                    nextInvestment = balance * 0.01 + cumulativeLosses + targetProfit;
             }
+
+            // Enforce minimum investment of $1
+            if (nextInvestment < 1) {
+                return nextInvestment; // Alert handled in processResult
+            }
+
+            // Enforce maximum investment of 5% of balance
+            const maxInvestment = balance * maxInvestmentPercentage;
+            if (nextInvestment > maxInvestment) {
+                nextInvestment = maxInvestment;
+            }
+
+            return nextInvestment;
         }
 
+        // Function to display round summary every 10 rounds
         function displayRoundSummary() {
             const summaryRow = document.createElement('tr');
             summaryRow.className = 'summary';
@@ -600,6 +690,7 @@
             roundSummary = { wins: 0, losses: 0, totalProfit: 0 };
         }
 
+        // Function to get the selected strategy
         function getSelectedStrategy() {
             for (const input of strategyInputs) {
                 if (input.checked) {
@@ -609,6 +700,7 @@
             return 'standard'; // default
         }
 
+        // Utility function to capitalize the first letter
         function capitalizeFirstLetter(string) {
             return string.charAt(0).toUpperCase() + string.slice(1);
         }
