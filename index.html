@@ -485,11 +485,14 @@
                 return;
             }
 
-            round = 0;
+            round = 1; // Start counting from 1
             roundSummary = { wins: 0, losses: 0, totalProfit: 0 };
             fibonacciIndex = 0;
             fibonacciSequence = [1, 1];  // Reset Fibonacci sequence
             cumulativeLosses = 0;
+
+            // Reset history table
+            historyTable.innerHTML = '';
 
             // Set initial investment based on strategy
             let selectedStrategy = getSelectedStrategy();
@@ -502,7 +505,9 @@
             }
 
             nextInvestmentInput.value = `$${previousInvestment.toFixed(2)}`;
-            historyTable.innerHTML = '';
+
+            // Add initial balance to history table
+            addHistoryRow(round, previousInvestment, 'N/A', 'N/A', balance);
         });
 
         // Profit Button Event Listener
@@ -545,33 +550,19 @@
                 // Profit
                 profit = previousInvestment * (payoutPercentage / 100);
                 cumulativeLosses = 0; // Reset cumulative losses after a win
+                roundSummary.wins++;
             } else {
                 // Loss
                 profit = -previousInvestment;
                 cumulativeLosses += previousInvestment;
+                roundSummary.losses++;
             }
 
             balance += profit;
-            round++;
-
-            if (success) {
-                roundSummary.wins++;
-            } else {
-                roundSummary.losses++;
-            }
             roundSummary.totalProfit += profit;
 
             // Add the round to the history table
-            const row = document.createElement('tr');
-            row.className = success ? 'profit' : 'loss';
-            row.innerHTML = `
-                <td>${round}</td>
-                <td>$${previousInvestment.toFixed(2)}</td>
-                <td>${success ? 'Win' : 'Loss'}</td>
-                <td>${success ? '+' : ''}$${profit.toFixed(2)}</td>
-                <td>$${balance.toFixed(2)}</td>
-            `;
-            historyTable.appendChild(row);
+            addHistoryRow(round, previousInvestment, success ? 'Win' : 'Loss', success ? `+$${profit.toFixed(2)}` : `-$${Math.abs(profit).toFixed(2)}`, balance);
 
             // Calculate next investment based on strategy
             previousInvestment = calculateNextInvestment(success);
@@ -607,6 +598,9 @@
             if (round % 10 === 0) {
                 displayRoundSummary();
             }
+
+            // Increment the round for the next result
+            round++;
         }
 
         // Function to calculate the next investment based on the selected strategy
@@ -640,16 +634,16 @@
                     if (success) {
                         // Reset Fibonacci sequence after a win
                         fibonacciIndex = 0;
-                        nextInvestment = 1; // Start with $1
+                        nextInvestment = Math.max(balance * 0.01, 1); // Reset to 1% of balance or minimum $1
                     } else {
                         // Move to the next Fibonacci number after a loss
                         fibonacciIndex++;
                         if (fibonacciIndex >= fibonacciSequence.length) {
                             const nextFib = fibonacciSequence[fibonacciIndex - 1] + fibonacciSequence[fibonacciIndex - 2];
                             fibonacciSequence.push(nextFib);
-                            nextInvestment = nextFib;
+                            nextInvestment = nextFib * (balance * 0.01); // Scale Fibonacci number by 1% of balance
                         } else {
-                            nextInvestment = fibonacciSequence[fibonacciIndex];
+                            nextInvestment = fibonacciSequence[fibonacciIndex] * (balance * 0.01); // Scale Fibonacci number by 1% of balance
                         }
                         // Add cumulative losses and target profit
                         nextInvestment += cumulativeLosses + targetProfit;
@@ -673,6 +667,26 @@
             }
 
             return nextInvestment;
+        }
+
+        // Function to add a row to the history table
+        function addHistoryRow(round, investment, result, profitLoss, currentBalance) {
+            const row = document.createElement('tr');
+            if (result === 'Win') {
+                row.className = 'profit';
+            } else if (result === 'Loss') {
+                row.className = 'loss';
+            } else {
+                row.className = '';
+            }
+            row.innerHTML = `
+                <td>${round}</td>
+                <td>$${investment.toFixed(2)}</td>
+                <td>${result}</td>
+                <td>${profitLoss}</td>
+                <td>$${currentBalance.toFixed(2)}</td>
+            `;
+            historyTable.appendChild(row);
         }
 
         // Function to display round summary every 10 rounds
